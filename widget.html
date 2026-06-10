@@ -33,17 +33,27 @@
     position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
     background: #f4f6f8; color: #556; font-size: 15px; text-align: center; padding: 24px;
   }
-  /* 醫療免責：常駐小字 */
-  #disclaimer {
-    position: absolute; left: 8px; right: 8px; bottom: 44px; text-align: center;
-    font-size: 10px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.65); pointer-events: none;
+  /* 範例提示清單：告訴使用者可以說什麼 */
+  #suggestions {
+    position: absolute; left: 8px; right: 8px; bottom: 44px;
+    display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto;
   }
+  #suggestions .sg-label {
+    width: 100%; font-size: 11px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); margin-bottom: 1px;
+  }
+  .sugg {
+    background: rgba(255,255,255,.94); color: #2f5d54; border: 1px solid rgba(47,93,84,.25);
+    border-radius: 14px; font-size: 12px; padding: 5px 10px; cursor: pointer; white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  .sugg:hover { background: #fff; }
 </style>
 </head>
 <body>
   <div id="stage">
     <div id="bubble"></div>
     <canvas id="avatar-canvas"></canvas>
+    <div id="suggestions"></div>
     <div id="control-bar">
       <button class="ctrl" id="btn-mic"   title="按一下開始說話">🎤 說話</button>
       <button class="ctrl" id="btn-llm"   title="啟用瀏覽器內 AI 大腦（首次需下載模型）">🧠</button>
@@ -52,7 +62,6 @@
       <button class="ctrl" id="btn-close" title="收起">✕</button>
     </div>
   </div>
-  <div id="disclaimer">✨ 可一行嵌入網站・Demo</div>
   <div id="direct-warn">請透過 <code>embed.js</code> 載入此元件。</div>
 
   <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
@@ -303,6 +312,8 @@
     const b = document.getElementById('btn-mic');
     b.classList.toggle('listening', on);
     b.textContent = on ? '● 聆聽中' : '🎤 說話';
+    const sg = document.getElementById('suggestions');
+    if (sg) sg.style.display = on ? 'none' : 'flex'; // 聆聽中收起清單
   }
   function startListening() {
     if (!SR) { speak('你的瀏覽器不支援語音辨識，建議用 Chrome 開喔。'); return; }
@@ -400,6 +411,21 @@
 
   // ===== 控制列 =====
   document.getElementById('btn-close').onclick = () => postToParent('close');
+
+  // 範例提示清單：一進站就告訴使用者「可以說什麼」，點任一項＝直接問（語音/打字都不用先猜）
+  (function renderSuggestions() {
+    const box = document.getElementById('suggestions');
+    if (!box) return;
+    const SUGGESTIONS = ['怎麼安裝？', '怎麼換成我的角色？', '要不要錢？', '麥克風怎麼用？', '我可以說什麼？'];
+    const label = document.createElement('div'); label.className = 'sg-label'; label.textContent = '💬 你可以問我：';
+    box.appendChild(label);
+    SUGGESTIONS.forEach((s) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'sugg'; b.textContent = s;
+      b.onclick = () => handleUser(s.replace(/？$/, ''));
+      box.appendChild(b);
+    });
+  })();
   document.getElementById('btn-mic').onclick   = () => startListening();
   document.getElementById('btn-mute').onclick  = () => {
     ttsMuted = !ttsMuted;
