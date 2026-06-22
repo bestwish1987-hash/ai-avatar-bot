@@ -67,7 +67,9 @@ vercel --prod          # 本機開發：vercel dev
 
 | 屬性 | 作用 | 預設 |
 |---|---|---|
-| `data-model` | **皮**：Live2D `.model3.json` 網址 | 內建 Haru 範例 |
+| `data-model` | **皮（2D）**：Live2D `.model3.json` 網址 | 內建 Haru 範例 |
+| `data-vrm` | **皮（3D）**：VRM `.vrm` 網址；設了就改走 3D（three-vrm）引擎，可拖放／換成自製 VRoid 角色 | 無（不設＝走 2D Live2D） |
+| `data-engine` | 預設引擎 `2d`／`3d`；**同時給 `data-model` ＋ `data-vrm` 時，widget 會長出 2D/3D 即時切換鈕** | 有 2D 皮→`2d`，否則 `3d` |
 | `data-knowledge` | **內容**：知識庫 JSON 網址（陣列 `[{q,kw,a}]`） | 內建 `knowledge.js` |
 | `data-api` | **肉**：神經語音後端端點；不設＝純瀏覽器語音 | 試同站 `api/tts` |
 | `data-voice` | 神經語音聲線（需後端支援） | `zh-TW-HsiaoChenNeural` |

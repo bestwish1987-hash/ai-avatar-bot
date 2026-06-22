@@ -37,6 +37,23 @@ function isAllowed(req) {
   return false;
 }
 
+// 簡易 in-memory 限流：best-effort（Vercel 每個實例各自計數、冷啟動會重置），擋單一 IP 明顯灌爆。
+// 要跨實例的「硬」限流請接 Upstash / Vercel KV；此處不依賴任何外部服務、零設定。
+const RL_WINDOW_MS = 60 * 1000, RL_MAX = 30;
+const _hits = new Map();                                  // ip -> { n, reset }
+function clientIp(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+function rateLimited(req) {
+  const ip = clientIp(req), now = Date.now();
+  let e = _hits.get(ip);
+  if (!e || now > e.reset) { e = { n: 0, reset: now + RL_WINDOW_MS }; _hits.set(ip, e); }
+  e.n++;
+  if (_hits.size > 5000) { for (const [k, v] of _hits) if (now > v.reset) _hits.delete(k); } // 防 Map 無限長
+  return e.n > RL_MAX;
+}
+
 module.exports = async (req, res) => {
   const origin = req.headers.origin || '';
   res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -46,6 +63,7 @@ module.exports = async (req, res) => {
 
   try {
     if (!isAllowed(req)) { res.statusCode = 403; res.end('forbidden: bad origin'); return; }
+    if (rateLimited(req)) { res.statusCode = 429; res.setHeader('Retry-After', '60'); res.end('rate limited'); return; }
 
     const u = new URL(req.url, 'http://localhost');
     const text = (u.searchParams.get('text') || '').slice(0, 600).trim();
